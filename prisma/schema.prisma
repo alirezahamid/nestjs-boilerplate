@@ -20,6 +20,8 @@ model User {
 
   firstName String?
   lastName String?
+
+  twoFactor Boolean @default(false)
   
   @@map("users")
 }
