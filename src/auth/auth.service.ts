@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthDto } from './dto';
 import * as argon from 'argon2';
@@ -97,7 +102,6 @@ export class AuthService {
     };
   }
   async refresh(userId: number, refreshToken: string) {
-    console.log('refresh: ', userId);
     const client = this.redisService.getClient();
     const storedToken = await client.get(`refresh_token_${userId}`);
     const user = await this.prisma.user.findUnique({
@@ -141,7 +145,26 @@ export class AuthService {
   }
 
   async logout(userId: number) {
-    await this.redisService.getClient().del(`refresh_token_${userId}`);
-    return { message: 'Logged out' };
+    try {
+      const tokenKey = `refresh_token_${userId}`;
+      const refreshToken = await this.redisService.getClient().get(tokenKey);
+
+      if (!refreshToken) {
+        throw new NotFoundException(
+          'Refresh token not found for the provided user ID',
+        );
+      }
+
+      await this.redisService.getClient().del(tokenKey);
+
+      return { message: 'Logged out successfully' };
+    } catch (error) {
+      if (error instanceof URIError) {
+        throw new InternalServerErrorException(
+          'An error occurred while logging out. Please try again.',
+        );
+      }
+      throw error;
+    }
   }
 }

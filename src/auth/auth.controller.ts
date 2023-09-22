@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -11,6 +13,7 @@ import { AuthDto } from './dto';
 import { GetUser, Public } from './decorator';
 import { JwtGuard } from './guard';
 import { Tokens } from './types';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -74,5 +77,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   logout(@GetUser('id') userId: number) {
     return this.authService.logout(userId);
+  }
+
+  @Get('slack')
+  @UseGuards(AuthGuard('slack'))
+  async slackAuth() {}
+
+  @Get('slack/callback')
+  @UseGuards(AuthGuard('slack'))
+  slackAuthRedirect(@Req() req) {
+    // Here, handle your login logic, maybe generating a JWT, etc.
+    // Redirect the user to the desired application part.
+    return req.user;
   }
 }
