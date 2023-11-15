@@ -18,9 +18,6 @@ export class SlackStrategy extends PassportStrategy(Strategy, 'slack') {
     // Here you can align the Slack user information with your application's user record.
     // You can save or update the user in your DB and return the user info.
     const { id, displayName, user } = profile;
-    console.log(profile);
-    console.log('access_token', accessToken);
-    console.log('refresh_token', refreshToken);
     return {
       slackId: id,
       username: displayName,

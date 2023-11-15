@@ -1,11 +1,14 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuthDto, ChangePasswordDto } from './dto';
+import { v4 as uuidv4 } from 'uuid'; // UUID for generating a unique token
+
+import { AuthDto, ChangePasswordDto, ResetPasswordDto } from './dto';
 import * as argon from 'argon2';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { JwtService } from '@nestjs/jwt';
@@ -129,8 +132,45 @@ export class AuthService {
     return tokens;
   }
 
-  forgotPassword() {
-    return 'Forgot Password';
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const resetToken = uuidv4();
+    const client = this.redisService.getClient();
+
+    await client.set(`reset_token_${user.id}`, resetToken, 'EX', 60 * 60);
+
+    const resetUrl = `https://yourapp.com/reset-password?token=${resetToken}`;
+    const emailContent = `Please click on the following link to reset your password: ${resetUrl}`;
+
+    await this.notificationService.sendEmail(
+      user.email,
+      'Password Reset',
+      emailContent,
+    );
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const client = this.redisService.getClient();
+    const resetToken = await client.get(`reset_token_${dto.userId}`);
+
+    if (!resetToken || resetToken !== dto.token) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const hashedPassword = await argon.hash(dto.newPassword);
+
+    await this.prisma.user.update({
+      where: { id: dto.userId },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    await client.del(`reset_token_${dto.userId}`);
   }
 
   async changePassword(
@@ -147,9 +187,6 @@ export class AuthService {
 
     if (!passwordValid)
       throw new ForbiddenException('Current password is incorrect');
-
-    // Optionally, you can add validation for the new password here
-    // e.g., check the length, complexity, etc.
 
     const hashedNewPassword = await argon.hash(newPassword);
 
@@ -185,16 +222,13 @@ export class AuthService {
     });
 
     if (!user) {
-      // Create a new user if they don't exist
       user = await this.prisma.user.create({
         data: {
           email: email,
-          // Include other fields as necessary
         },
       });
     }
 
-    // Check for existing UserAuthentication record
     const userAuth = await this.prisma.userAuthentication.findFirst({
       where: {
         userId: user.id,
@@ -203,21 +237,17 @@ export class AuthService {
     });
 
     if (!userAuth) {
-      // Create a new UserAuthentication record if it doesn't exist
       await this.prisma.userAuthentication.create({
         data: {
           userId: user.id,
           provider: 'SLACK',
-          identifier: slackId, // The unique identifier from Slack
-          // accessToken and refreshToken are left empty
+          identifier: slackId,
         },
       });
     } else {
-      // Optionally, update the existing UserAuthentication record
       await this.prisma.userAuthentication.update({
         where: { id: userAuth.id },
         data: {
-          // Update any relevant fields, but leave tokens as they are
           identifier: slackId,
         },
       });

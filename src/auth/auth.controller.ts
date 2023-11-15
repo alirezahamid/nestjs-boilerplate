@@ -43,8 +43,8 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  forgotPassword() {
-    return this.authService.forgotPassword();
+  forgotPassword(@Body('email') email: string) {
+    return this.authService.forgotPassword(email);
   }
 
   @UseGuards(JwtGuard)
