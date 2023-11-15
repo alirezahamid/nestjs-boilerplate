@@ -21,6 +21,7 @@ model User {
   firstName String?
   lastName String?
 
+  verified     Boolean   @default(false)
   twoFactor Boolean @default(false)
 
   authentications UserAuthentication[]

@@ -6,6 +6,13 @@ import { JwtStrategy } from './strategy';
 import { SlackStrategy } from './strategy/slack.strategy';
 import { NotificationService } from 'src/notification/notification.service';
 
+/**
+ * Represents the authentication module of the application.
+ * @module AuthModule
+ * @requires JwtModule
+ * @controllers AuthController
+ * @providers AuthService, JwtStrategy, SlackStrategy, NotificationService
+ */
 @Module({
   imports: [JwtModule.register({})],
   controllers: [AuthController],
