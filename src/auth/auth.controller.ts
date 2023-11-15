@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthDto } from './dto';
+import { AuthDto, ChangePasswordDto } from './dto';
 import { GetUser, Public } from './decorator';
 import { JwtGuard } from './guard';
 import { Tokens } from './types';
@@ -47,9 +47,13 @@ export class AuthController {
     return this.authService.forgotPassword();
   }
 
+  @UseGuards(JwtGuard)
   @Post('change-password')
-  changePassword() {
-    return this.authService.changePassword();
+  changePassword(
+    @GetUser('id') userId: number,
+    @Body() passwords: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(userId, passwords);
   }
 
   @Post('verify-email')

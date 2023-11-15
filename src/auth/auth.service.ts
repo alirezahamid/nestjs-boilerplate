@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuthDto } from './dto';
+import { AuthDto, ChangePasswordDto } from './dto';
 import * as argon from 'argon2';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { JwtService } from '@nestjs/jwt';
@@ -124,8 +124,32 @@ export class AuthService {
     return 'Forgot Password';
   }
 
-  changePassword() {
-    return 'Change Password';
+  async changePassword(
+    userId: number,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    const { currentPassword, newPassword } = changePasswordDto;
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    const passwordValid = await argon.verify(user.password, currentPassword);
+
+    if (!passwordValid)
+      throw new ForbiddenException('Current password is incorrect');
+
+    // Optionally, you can add validation for the new password here
+    // e.g., check the length, complexity, etc.
+
+    const hashedNewPassword = await argon.hash(newPassword);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+
+    return { message: 'Password successfully changed' };
   }
 
   verifyEmail() {
