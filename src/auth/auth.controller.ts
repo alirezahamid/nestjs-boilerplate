@@ -85,9 +85,10 @@ export class AuthController {
 
   @Get('slack/callback')
   @UseGuards(AuthGuard('slack'))
-  slackAuthRedirect(@Req() req) {
-    // Here, handle your login logic, maybe generating a JWT, etc.
-    // Redirect the user to the desired application part.
-    return req.user;
+  async slackAuthRedirect(@Req() req) {
+    const slackUser = req.user;
+    const user = await this.authService.findOrCreateUserFromSlack(slackUser);
+    const tokens = await this.authService.getTokens(user.id, user.email);
+    return tokens;
   }
 }

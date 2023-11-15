@@ -144,6 +144,55 @@ export class AuthService {
     return '2 Factor Login';
   }
 
+  async findOrCreateUserFromSlack(slackUserData): Promise<any> {
+    const { email, slackId } = slackUserData;
+
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Create a new user if they don't exist
+      user = await this.prisma.user.create({
+        data: {
+          email: email,
+          // Include other fields as necessary
+        },
+      });
+    }
+
+    // Check for existing UserAuthentication record
+    const userAuth = await this.prisma.userAuthentication.findFirst({
+      where: {
+        userId: user.id,
+        provider: 'SLACK',
+      },
+    });
+
+    if (!userAuth) {
+      // Create a new UserAuthentication record if it doesn't exist
+      await this.prisma.userAuthentication.create({
+        data: {
+          userId: user.id,
+          provider: 'SLACK',
+          identifier: slackId, // The unique identifier from Slack
+          // accessToken and refreshToken are left empty
+        },
+      });
+    } else {
+      // Optionally, update the existing UserAuthentication record
+      await this.prisma.userAuthentication.update({
+        where: { id: userAuth.id },
+        data: {
+          // Update any relevant fields, but leave tokens as they are
+          identifier: slackId,
+        },
+      });
+    }
+
+    return user;
+  }
+
   async logout(userId: number) {
     try {
       const tokenKey = `refresh_token_${userId}`;

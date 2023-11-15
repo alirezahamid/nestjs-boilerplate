@@ -5,10 +5,11 @@ import { readFileSync } from 'fs';
 
 async function bootstrap() {
   const httpsOptions = {
-    key: readFileSync('./certs/localhost-key.pem'),
-    cert: readFileSync('./certs/localhost.pem'),
+    key: readFileSync('./certs/server.key'),
+    cert: readFileSync('./certs/server.cert'),
   };
   const app = await NestFactory.create(AppModule, { httpsOptions });
+  // const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
