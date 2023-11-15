@@ -12,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from 'src/redis/redis.service';
 import { JwtPayload, Tokens } from './types';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable({})
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private redisService: RedisService,
+    private notificationService: NotificationService,
   ) {}
 
   async register(dto: AuthDto): Promise<Tokens> {
@@ -61,6 +63,13 @@ export class AuthService {
 
     const tokens = await this.getTokens(user.id, user.email);
     await this.updateRefreshTokenHash(user.id, tokens.refresh_token);
+
+    // const emailContent = `<p>Welcome back, ${user.email}!</p>`;
+    // this.notificationService.sendEmail(
+    //   user.email,
+    //   'Successful Login Notification',
+    //   emailContent,
+    // );
 
     return tokens;
   }

@@ -40,3 +40,5 @@ lerna-debug.log*
 
 # Certs
 certs/*
+
+package-lock.json
