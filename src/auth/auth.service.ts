@@ -133,6 +133,7 @@ export class AuthService {
     ]);
 
     return {
+      id: userId,
       access_token: at,
       refresh_token: rt,
     };
@@ -145,12 +146,12 @@ export class AuthService {
    * @returns {Promise<Object>} - An object containing the new access token and refresh token.
    * @throws {ForbiddenException} - If the stored refresh token does not match the provided refresh token.
    */
-  async refresh(userId: number, refreshToken: string) {
+  async refresh(userId: string, refreshToken: string) {
     const client = this.redisService.getClient();
     const storedToken = await client.get(`refresh_token_${userId}`);
     const user = await this.prisma.user.findUnique({
       where: {
-        id: userId,
+        id: parseInt(userId),
       },
     });
     if (!storedToken) throw new ForbiddenException('Access Denied');
@@ -321,53 +322,6 @@ export class AuthService {
 
   twoFactorLogin() {
     return '2 Factor Login';
-  }
-
-  /**
-   * Finds or creates a user based on the provided Slack user data.
-   * @param {object} slackUserData - The Slack user data object containing email and slackId.
-   * @returns {Promise<any>} - A promise that resolves to the created or found user.
-   */
-  async findOrCreateUserFromSlack(slackUserData): Promise<any> {
-    const { email, slackId } = slackUserData;
-
-    let user = await this.prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          email: email,
-        },
-      });
-    }
-
-    const userAuth = await this.prisma.userAuthentication.findFirst({
-      where: {
-        userId: user.id,
-        provider: 'SLACK',
-      },
-    });
-
-    if (!userAuth) {
-      await this.prisma.userAuthentication.create({
-        data: {
-          userId: user.id,
-          provider: 'SLACK',
-          identifier: slackId,
-        },
-      });
-    } else {
-      await this.prisma.userAuthentication.update({
-        where: { id: userAuth.id },
-        data: {
-          identifier: slackId,
-        },
-      });
-    }
-
-    return user;
   }
 
   /**

@@ -3,7 +3,6 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategy';
-import { SlackStrategy } from './strategy/slack.strategy';
 import { NotificationService } from 'src/notification/notification.service';
 
 /**
@@ -11,11 +10,11 @@ import { NotificationService } from 'src/notification/notification.service';
  * @module AuthModule
  * @requires JwtModule
  * @controllers AuthController
- * @providers AuthService, JwtStrategy, SlackStrategy, NotificationService
+ * @providers AuthService, JwtStrategy, NotificationService
  */
 @Module({
   imports: [JwtModule.register({})],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, SlackStrategy, NotificationService],
+  providers: [AuthService, JwtStrategy, NotificationService],
 })
 export class AuthModule {}

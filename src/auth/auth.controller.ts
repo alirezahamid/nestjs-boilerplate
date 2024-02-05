@@ -1,19 +1,16 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthDto, ChangePasswordDto } from './dto';
-import { GetUser, Public } from './decorator';
+import { GetUser } from './decorator';
 import { JwtGuard } from './guard';
 import { Tokens } from './types';
-import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -47,12 +44,10 @@ export class AuthController {
    * @param {string} refreshToken - The refresh token provided by the user.
    * @returns The refreshed authentication token.
    */
-  @Public()
-  @UseGuards(JwtGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
-    @GetUser('id') userId: number,
+    @Body('userId') userId: string,
     @Body('refreshToken') refreshToken: string,
   ) {
     return this.authService.refresh(userId, refreshToken);
@@ -128,23 +123,5 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   logout(@GetUser('id') userId: number) {
     return this.authService.logout(userId);
-  }
-
-  @Get('slack')
-  @UseGuards(AuthGuard('slack'))
-  async slackAuth() {}
-
-  /**
-   * Handles the callback route for Slack authentication.
-   * @param {Object} req - The request object.
-   * @returns {Promise<Object>} - The tokens for the authenticated user.
-   */
-  @Get('slack/callback')
-  @UseGuards(AuthGuard('slack'))
-  async slackAuthRedirect(@Req() req) {
-    const slackUser = req.user;
-    const user = await this.authService.findOrCreateUserFromSlack(slackUser);
-    const tokens = await this.authService.getTokens(user.id, user.email);
-    return tokens;
   }
 }
